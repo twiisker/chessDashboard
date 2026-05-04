@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+
+# Local databases
+*.duckdb
+*.duckdb.wal
+*.duckdb.tmp
+*.db
+*.db-wal
+
+# Project data folders
+chess_com_data/
+twic/data/
+chesscom/chess_data_cache/
+chesscom/chess_data_cache*/
+chesscom/data_cache/
+chesscom/cache/
+data/
+storage/
+archive/
+
+# TWIC generated model/data artifacts
+twic/outputs/
+*.joblib
+*.parquet
+
+# Downloads
+*.txt
+*.json
+*.pgn
+*.zip
+
+# logs cache tmp
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# notebooks/
+# *.ipynb
+
+# vs code 
+.vscode/settings.json
+
+# test files
+\#*
