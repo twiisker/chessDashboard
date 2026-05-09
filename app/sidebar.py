@@ -7,7 +7,7 @@ from app.api_client import ChessApiError, fetch_live_user_data
 
 
 def render_sidebar() -> list[str]:
-    st.sidebar.title("♟️ Control Panel")
+    st.sidebar.title(" Control Panel")
 
     with st.sidebar.form(key="search_form"):
         username_input = st.text_input(

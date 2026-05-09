@@ -19,6 +19,7 @@ from app.components.volume_outcome import render_volume_and_outcomes
 from app.components.clock_management import render_clock_management
 from app.components.recent_repertoire import render_recent_repertoire
 from app.components.opening_engine import render_openings_and_engine
+from app.components.peer_report import render_peer_report
 
 def main() -> None:
     st.set_page_config(page_title="Chess Analytics Dashboard", page_icon="♟️", layout="wide")
@@ -43,6 +44,7 @@ def main() -> None:
         
         render_playstyle_inference(filtered_df, st.session_state["current_user"])
         st.divider()
+        
         
         render_volume_and_outcomes(filtered_df)
         st.divider()
@@ -85,6 +87,9 @@ def main() -> None:
         st.divider()
 
         render_clock_management(filtered_df, st.session_state["current_user"])
+        st.divider()
+
+        render_peer_report(filtered_df, st.session_state["current_user"])
         st.divider()
         
         render_recent_repertoire(filtered_df)

@@ -48,7 +48,7 @@ def render_openings_and_engine(df: pd.DataFrame) -> None:
 
     available_openings = sorted(valid_openings["opening_name"].unique().tolist())
 
-    st.markdown(f"### 🌳 Build Polyglot Tree ({color_choice})")
+    st.markdown(f"### Build Polyglot Tree ({color_choice})")
     st.info("Select an opening to generate a branching tree of exactly what your opponents play, and where your win rate drops.")
     
     tree_col1, tree_col2 = st.columns([3, 1])
@@ -134,7 +134,7 @@ def render_openings_and_engine(df: pd.DataFrame) -> None:
                 
                 # --- UPGRADE 2: The "Missed Opportunities" Training Table ---
                 if not missed_df.empty:
-                    st.markdown("### 🚨 Missed Opportunities (Theory to Review)")
+                    st.markdown("### issed Opportunities (Theory to Review)")
                     st.info("These are games where your opponent blundered in the opening, but you failed to find the engine's best continuation.")
                     
                     review_df = missed_df[["url", "opp_worst_move", "best_engine_move", "my_actual_response", "punishment_cpl"]].copy()

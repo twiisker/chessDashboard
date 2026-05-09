@@ -1,7 +1,8 @@
+import pandas as pd
 from pathlib import Path
 from typing import Any
 
-from chesscom.peers import create_peer_cohort
+from chesscom.peers import download_peer_games, create_peer_cohort
 from features.pipeline import build_feature_frame, build_peer_group_feature_frame
 
 from aggregations.peer_comparison import (
@@ -15,6 +16,46 @@ from aggregations.peer_comparison import (
     get_peer_leaderboard,
 )
 
+def _normalize_peer_report_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Ensures comparison columns have stable dtypes before aggregation.
+
+    This prevents errors like:
+      Expected numeric dtype, got object instead.
+    """
+
+    out = df.copy()
+
+    numeric_cols = [
+        "my_rating",
+        "opp_rating",
+        "rating_delta",
+        "hour",
+        "time_spent_opening",
+    ]
+
+    for col in numeric_cols:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+
+    string_cols = [
+        "simple_result",
+        "my_color",
+        "opening_family",
+        "opening_name",
+        "peer_username",
+        "target_username",
+        "time_class",
+    ]
+
+    for col in string_cols:
+        if col in out.columns:
+            out[col] = out[col].astype("object")
+
+    if "end_time" in out.columns:
+        out["end_time"] = pd.to_datetime(out["end_time"], utc=True, errors="coerce")
+
+    return out
 
 def build_peer_report(
     target_username: str,
@@ -31,7 +72,7 @@ def build_peer_report(
     Builds all peer-group comparison tables for one target user and one time class.
     """
 
-    peers = create_peer_cohort(
+    peers = download_peer_games(
         target_username=target_username,
         db_path=db_path,
         max_peers=max_peers,
@@ -59,6 +100,9 @@ def build_peer_report(
         max_games_per_peer=max_games_per_peer,
     )
 
+    user_df = _normalize_peer_report_dtypes(user_df)
+    peer_df = _normalize_peer_report_dtypes(peer_df)
+    
     opening_comparison_df = get_opening_peer_comparison(
         user_df=user_df,
         peer_df=peer_df,

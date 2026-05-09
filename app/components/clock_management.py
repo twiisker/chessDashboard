@@ -3,7 +3,7 @@ import streamlit as st
 import plotly.express as px # type: ignore #
 
 def render_clock_management(df: pd.DataFrame, username: str) -> None:
-    st.subheader("⏱️ Opening Clock Management")
+    st.subheader("Opening Clock Management")
     
     # Filter for Rapid and Blitz where time_spent_opening successfully calculated
     if "time_spent_opening" not in df.columns:
