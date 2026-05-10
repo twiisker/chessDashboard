@@ -20,7 +20,7 @@ STOCKFISH_PATH: Final[str] = "/usr/local/bin/stockfish"
 OPENING_PLY_LIMIT: Final[int] = 20
 
 # chess com api
-CONTACT_EMAIL = ""
+CONTACT_EMAIL = os.getenv("CONTACT_EMAIL", "")
 
 # API URL
 

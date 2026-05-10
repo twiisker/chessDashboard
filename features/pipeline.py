@@ -71,6 +71,9 @@ def build_feature_frame(
         include_unrated=include_unrated,
     )
 
+    if max_games is not None and max_games > 0 and not df.empty:
+        df = df.tail(max_games).copy()
+
     df = add_user_perspective_columns(df, username)
     df = compute_result_columns(df)
     df = compute_time_features(df)
@@ -105,6 +108,7 @@ def build_peer_group_feature_frame(
             db_path=db_path,
             time_class=time_class,
             include_unrated=include_unrated,
+            max_games=max_games_per_peer,
             include_opening_clock=include_opening_clock,
         )
 

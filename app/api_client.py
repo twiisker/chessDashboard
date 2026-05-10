@@ -5,7 +5,7 @@ import streamlit as st
 
 from chesscom.config import API_BASE_URL
 
-DEFAULT_TIMEOUT_SECONDS = 120
+DEFAULT_TIMEOUT_SECONDS = 300
 
 
 class ChessApiError(RuntimeError):
@@ -83,6 +83,7 @@ def fetch_live_user_data(
             "include_unrated": include_unrated,
             "time_class": time_class,
         },
+        timeout=300,
     )
 
     games = data.get("games", [])

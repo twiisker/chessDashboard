@@ -1,8 +1,11 @@
-import pandas as pd
+import math
 from pathlib import Path
 from typing import Any
 
-from chesscom.peers import download_peer_games, create_peer_cohort
+import numpy as np
+import pandas as pd
+
+from chesscom.peers import download_peer_games
 from features.pipeline import build_feature_frame, build_peer_group_feature_frame
 
 from aggregations.peer_comparison import (
@@ -57,6 +60,59 @@ def _normalize_peer_report_dtypes(df: pd.DataFrame) -> pd.DataFrame:
 
     return out
 
+def _json_safe_value(value: Any) -> Any:
+    """
+    Converts Pandas / NumPy values into strict JSON-safe Python values.
+    Removes NaN, inf, -inf, pd.NA, and NaT.
+    """
+
+    if value is None:
+        return None
+
+    if value is pd.NA:
+        return None
+
+    if isinstance(value, pd.Timestamp):
+        if pd.isna(value):
+            return None
+        return value.isoformat()
+
+    if isinstance(value, np.integer):
+        return int(value)
+
+    if isinstance(value, np.floating):
+        value = float(value)
+
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            return None
+        return value
+
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+
+    return value
+
+
+def _json_safe_records(df: pd.DataFrame) -> list[dict[str, Any]]:
+    """
+    Converts a DataFrame to strict JSON-safe records.
+    """
+
+    if df.empty:
+        return []
+
+    safe_df = df.copy()
+    safe_df = safe_df.replace([np.inf, -np.inf], np.nan)
+    safe_df = safe_df.astype(object).where(pd.notna(safe_df), None)
+
+    records = safe_df.to_dict("records")
+
+    return [{key: _json_safe_value(value) for key, value in row.items()} for row in records]
+
 def build_peer_report(
     target_username: str,
     db_path: str | Path,
@@ -109,6 +165,14 @@ def build_peer_report(
         min_games=10,
     )
 
+    overall_df = get_overall_peer_comparison(user_df, peer_df)
+    opening_play_share_gap_df = get_opening_play_share_gap(opening_comparison_df)
+    opening_score_gap_df = get_opening_score_gap(opening_comparison_df)
+    repertoire_width_df = get_repertoire_width_comparison(user_df, peer_df)
+    top_3_share_df = get_top_n_opening_share(user_df, peer_df, n=3)
+    rating_bucket_df = get_rating_bucket_comparison(user_df, peer_df)
+    peer_leaderboard_df = get_peer_leaderboard(peer_df)
+
     return {
         "target_username": target_username,
         "time_class": time_class,
@@ -116,22 +180,12 @@ def build_peer_report(
         "peers": peers,
         "user_game_count": int(len(user_df)),
         "peer_game_count": int(len(peer_df)),
-        "overall": get_overall_peer_comparison(user_df, peer_df).to_dict("records"),
-        "opening_comparison": opening_comparison_df.to_dict("records"),
-        "opening_play_share_gap": get_opening_play_share_gap(
-            opening_comparison_df
-        ).to_dict("records"),
-        "opening_score_gap": get_opening_score_gap(
-            opening_comparison_df
-        ).to_dict("records"),
-        "repertoire_width": get_repertoire_width_comparison(
-            user_df, peer_df
-        ).to_dict("records"),
-        "top_3_share": get_top_n_opening_share(
-            user_df, peer_df, n=3
-        ).to_dict("records"),
-        "rating_bucket_comparison": get_rating_bucket_comparison(
-            user_df, peer_df
-        ).to_dict("records"),
-        "peer_leaderboard": get_peer_leaderboard(peer_df).to_dict("records"),
+        "overall": _json_safe_records(overall_df),
+        "opening_comparison": _json_safe_records(opening_comparison_df),
+        "opening_play_share_gap": _json_safe_records(opening_play_share_gap_df),
+        "opening_score_gap": _json_safe_records(opening_score_gap_df),
+        "repertoire_width": _json_safe_records(repertoire_width_df),
+        "top_3_share": _json_safe_records(top_3_share_df),
+        "rating_bucket_comparison": _json_safe_records(rating_bucket_df),
+        "peer_leaderboard": _json_safe_records(peer_leaderboard_df),
     }

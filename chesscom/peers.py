@@ -34,17 +34,15 @@ def create_peer_cohort(
     Selects the last N unique opponents for a target user in a specific time control
     and stores them in peer_cohort_members.
 
-    Example:
-        time_class="rapid"  -> last 50 rapid opponents
-        time_class="blitz"  -> last 50 blitz opponents
-        time_class="bullet" -> last 50 bullet opponents
-
-    If refresh=True, the old saved cohort for this user/time-control is deleted
-    before recalculating the current last N opponents.
+    Important:
+      - avoids duplicate peer rows
+      - reuses an existing cohort when refresh=False
+      - separates cohorts by rating_window
     """
 
     if cohort_name is None:
-        cohort_name = f"last_{max_peers}_{time_class}"
+        rating_label = "any" if rating_window is None else f"rw_{rating_window}"
+        cohort_name = f"last_{max_peers}_{time_class}_{rating_label}"
 
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,29 +110,68 @@ def create_peer_cohort(
     with duckdb.connect(str(db_path)) as con:
         con.execute(CREATE_PEER_COHORT_TABLE_SQL)
 
-        if refresh:
-            con.execute(
+        if not refresh:
+            existing_df = con.execute(
                 """
-                DELETE FROM peer_cohort_members
-                WHERE LOWER(target_username) = LOWER(?)
-                  AND cohort_name = ?
-                  AND time_class = ?
+                WITH ranked AS (
+                    SELECT
+                        peer_username,
+                        source_game_date,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY LOWER(peer_username)
+                            ORDER BY source_game_date DESC
+                        ) AS rn
+                    FROM peer_cohort_members
+                    WHERE LOWER(target_username) = LOWER(?)
+                      AND cohort_name = ?
+                      AND time_class = ?
+                )
+                SELECT peer_username
+                FROM ranked
+                WHERE rn = 1
+                ORDER BY source_game_date DESC
+                LIMIT ?
                 """,
-                [target_username, cohort_name, time_class],
-            )
+                [target_username, cohort_name, time_class, max_peers],
+            ).df()
+
+            if not existing_df.empty:
+                return existing_df["peer_username"].dropna().tolist()
+
+        con.execute(
+            """
+            DELETE FROM peer_cohort_members
+            WHERE LOWER(target_username) = LOWER(?)
+              AND cohort_name = ?
+              AND time_class = ?
+            """,
+            [target_username, cohort_name, time_class],
+        )
 
         con.execute(insert_query, params)
 
         peers_df = con.execute(
             """
+            WITH ranked AS (
+                SELECT
+                    peer_username,
+                    source_game_date,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY LOWER(peer_username)
+                        ORDER BY source_game_date DESC
+                    ) AS rn
+                FROM peer_cohort_members
+                WHERE LOWER(target_username) = LOWER(?)
+                  AND cohort_name = ?
+                  AND time_class = ?
+            )
             SELECT peer_username
-            FROM peer_cohort_members
-            WHERE LOWER(target_username) = LOWER(?)
-              AND cohort_name = ?
-              AND time_class = ?
+            FROM ranked
+            WHERE rn = 1
             ORDER BY source_game_date DESC
+            LIMIT ?
             """,
-            [target_username, cohort_name, time_class],
+            [target_username, cohort_name, time_class, max_peers],
         ).df()
 
     return peers_df["peer_username"].dropna().tolist()
@@ -162,6 +199,9 @@ def download_peer_games(
         rating_window=rating_window,
         refresh=refresh,
     )
+
+    # Defensive dedupe, preserving order.
+    peers = list(dict.fromkeys(peers))
 
     print(f"\nFound {len(peers)} {time_class} peers for {target_username}:")
     for peer in peers:

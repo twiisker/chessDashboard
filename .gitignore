@@ -1,28 +1,23 @@
 # Python
 __pycache__/
 
-# Local databases
-*.duckdb
+# Local runtime databases / caches
+chess_com_data/
 *.duckdb.wal
 *.duckdb.tmp
-*.db
 *.db-wal
 
-# Project data folders
-chess_com_data/
-twic/data/
-chesscom/chess_data_cache/
-chesscom/chess_data_cache*/
-chesscom/data_cache/
-chesscom/cache/
-data/
-storage/
-archive/
+# ignore all unless specified
+*.duckdb
+*.db
 
-# TWIC generated model/data artifacts
-twic/outputs/
-*.joblib
-*.parquet
+# TWIC data
+!twic/
+!twic/data/
+!twic/data/twic_data.duckdb
+!twic/outputs/
+!twic/outputs/*.joblib
+!twic/outputs/*.parquet
 
 # Downloads
 *.txt

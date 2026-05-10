@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      CHESS_API_BASE_URL: "http://api:8000/api/v1"
+      STOCKFISH_PATH: "/usr/local/bin/stockfish"
+      PYTHONPATH: "/app"
+    volumes:
+      - chess_data:/app/chess_com_data
+    restart: unless-stopped
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: streamlit run app/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    environment:
+      CHESS_API_BASE_URL: "http://api:8000/api/v1"
+      STOCKFISH_PATH: "/usr/local/bin/stockfish"
+      PYTHONPATH: "/app"
+    volumes:
+      - chess_data:/app/chess_com_data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  chess_data:
