@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+streamlit
+pandas
+numpy
+plotly
+requests
+duckdb
+tqdm
+typeguard
+pandera
+python-chess
+joblib
+scikit-learn
+pyarrow

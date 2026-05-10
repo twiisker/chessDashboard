@@ -20,7 +20,6 @@ chess_com_data/
 !twic/outputs/*.parquet
 
 # Downloads
-*.txt
 *.json
 *.pgn
 *.zip
